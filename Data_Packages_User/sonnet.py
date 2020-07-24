@@ -3,7 +3,7 @@ import re
 from collections import defaultdict
 from os.path import dirname, join
 import sublime
-from sublime_plugin import ViewEventListener
+import sublime_plugin
 
 alternate = re.compile(r'.*\(\d\)$')
 
@@ -18,9 +18,23 @@ yellow = 'string'
 white = 'text'
 gray = 'comment'
 
+
+def rhyme_key(pronunciation):
+    rhyme_key = []
+    for c in reversed(pronunciation):
+        if (c == '-'
+                and ('0' in rhyme_key
+                     or '1' in rhyme_key
+                     or '2' in rhyme_key)):
+            break
+        rhyme_key.append(c)
+    return ''.join(reversed(rhyme_key))
+
+
 cmudict = {}
 start_unstressed = defaultdict(lambda: defaultdict(list))
 start_stressed = defaultdict(lambda: defaultdict(list))
+rhymes = defaultdict(list)
 
 for entry in open(join(dirname(__file__), 'cmudict-0.7b.txt')):
     if entry.startswith(';;;'):
@@ -52,10 +66,15 @@ for entry in open(join(dirname(__file__), 'cmudict-0.7b.txt')):
         completions = start_stressed
 
     completions = completions[len(stress_markers)]
-    completions[''].append((word, word))
+    completions[''].append(word)
 
     for i, c in enumerate(word):
-        completions[word[:i+1]].append((word, word))
+        completions[word[:i+1]].append(word)
+
+    if stress_markers[-1] == '0':
+        continue
+
+    rhymes[rhyme_key(pronunciation)].append(word)
 
 # for completions in start_unstressed, start_stressed:
 #     syllable_counts = list(completions.keys())
@@ -98,12 +117,54 @@ def get_final_vowel_sound(pronunciation):
         if p == 'z':
             p = 's'
         final_vowel_sound.insert(0, p)
-        if '0' in p or '1' in p:
+        if '0' in p or '1' in p or '2' in p:
             break
     return final_vowel_sound
 
 
-class Sonnet(ViewEventListener):
+def weighted_choice(choices):
+   total = sum(w for c, w in choices)
+   r = random.uniform(0, total)
+   for c, w in choices:
+      r -= w
+      if r < 0:
+         return c
+   assert False, "Shouldn't get here"
+
+
+class SonnetRandomEndWordsCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        words_choices = []
+
+        for syllable_count in range(1, 10):
+            dct = start_unstressed if syllable_count % 2 == 0 else start_stressed
+            words = dct[syllable_count]['']
+            words_choices.append((words, len(words)))
+
+        end_words = [None] * 14
+
+        for i in range(14):
+            if i in [2, 3, 6, 7, 10, 11, 13]:
+                continue
+            while True:
+                end_words[i] = random.choice(weighted_choice(words_choices))
+                j = 1 if i == 12 else 2
+                k = rhyme_key(cmudict[end_words[i]])
+                if len(rhymes[k]) == 1:
+                    continue
+                end_words[i+j] = random.choice(rhymes[k])
+                if end_words[i] != end_words[i+j]:
+                    break
+
+        for row in range(14):
+            line_end = self.view.line(self.view.text_point(row, 0)).end()
+            word = ' ' + end_words[row]
+            if line_end == self.view.size():
+                word = word + '\n'
+            self.view.insert(edit, line_end, word)
+
+
+class Sonnet(sublime_plugin.ViewEventListener):
     @classmethod
     def is_applicable(cls, settings):
         return settings is not None and '/Text/' in settings.get('syntax', '')
@@ -111,7 +172,6 @@ class Sonnet(ViewEventListener):
     def __init__(self, view):
         super().__init__(view)
         self.meter_phantom_set = sublime.PhantomSet(view)
-        self.on_post_save()
 
     def on_query_completions(self, prefix, locations):
         # print(prefix == '', [self.view.rowcol(l) for l in locations])
@@ -137,7 +197,8 @@ class Sonnet(ViewEventListener):
 
         replacements = []
         for syllable_count in 5, 4, 3, 2, 1:
-            replacements.append(random.choice(completions[syllable_count][prefix.lower()]))
+            word = random.choice(completions[syllable_count][prefix.lower()])
+            replacements.append((word, word))
 
         return replacements, completion_flags
 

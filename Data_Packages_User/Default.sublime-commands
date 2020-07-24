@@ -1,0 +1,7 @@
+[
+  {
+    "caption": "Sonnet random end words",
+    "command": "sonnet_random_end_words",
+    "args": {}
+  }
+]
