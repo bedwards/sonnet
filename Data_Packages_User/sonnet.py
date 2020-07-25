@@ -41,13 +41,14 @@ for entry in open(join(dirname(__file__), 'cmudict-0.7b.txt')):
         continue
 
     word, pronunciation = entry.rstrip().split(None, 1)
+
+    if '-' in word:
+        continue
+
     word = word.lower()
     pronunciation = pronunciation.lower()
     pronunciation = pronunciation.replace(' ', '-')
-
-    if '-' in word or alternate.match(word):
-        continue
-
+    cmudict[word] = pronunciation
     stress_markers = ''.join([s for s in pronunciation if s in '012'])
 
     if (len(stress_markers) > 10
@@ -57,8 +58,6 @@ for entry in open(join(dirname(__file__), 'cmudict-0.7b.txt')):
             or '12' in stress_markers
             or '21' in stress_markers):
         continue
-
-    cmudict[word] = pronunciation
 
     if stress_markers[0] == '0':
         completions = start_unstressed
@@ -260,13 +259,13 @@ class Sonnet(sublime_plugin.ViewEventListener):
                     continue
                 stress_index = word_starts[cur_word] + (cur_syllable - 1) * 2
                 if i % 2 == 0:
-                    if stress == 0 or word_syllables == 1:
+                    if stress in [0, 2] or word_syllables == 1:
                         stress_output[stress_index] = '<span style="color: gray">˘</span>'
                         score += 1
                     else:
                         stress_output[stress_index] = '<span style="color: yellow">¯</span>'
                 else:
-                    if stress >= 1:
+                    if stress > 0:
                         stress_output[stress_index] = '<span style="color: gray">¯</span>'
                         score += 1
                     else:
