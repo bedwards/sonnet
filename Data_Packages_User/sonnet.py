@@ -216,6 +216,7 @@ class Sonnet(sublime_plugin.ViewEventListener):
         # return replacements, completion_flags
 
     def on_post_save(self):
+        print('on_post_save')
         line_contents = []
         longest_line = 0
 
