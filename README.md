@@ -1,5 +1,23 @@
 # sonnet
 
+## Install
+
+```
+git clone git@github.com:bedwards/sonnet.git
+cd sonnet
+wget https://download.sublimetext.com/Sublime%20Text%20Build%203211.dmg
+open Sublime\ Text\ Build\ 3211.dmg
+cp -rv /Volumes/Sublime\ Text/Sublime\ Text.app ./
+(eject volume using finder)
+rm Sublime\ Text\ Build\ 3211.dmg
+mkdir -p Sublime\ Text.app/Contents/MacOS/Data/Packages
+pushd Sublime\ Text.app/Contents/MacOS/Data/Packages
+ln -s ../../../../../Data_Packages_User User
+popd
+open Sublime\ Text.app
+(Cmd-` for console)
+```
+
 ## Single-syllable start unstressed
 
 Useful
