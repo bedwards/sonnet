@@ -1,5 +1,15 @@
 # sonnet
 
+A
+[Sublime Text](https://www.sublimetext.com/)
+plugin that uses the 
+[cmudict](http://www.speech.cs.cmu.edu/cgi-bin/cmudict)
+pronouncing dictionary to help you write sonnets.
+
+Like Paula Nancy Millstone Jennings, Sonnet #42...
+
+![Example screenshot](sonnet.png)
+
 ## Install
 
 ```
